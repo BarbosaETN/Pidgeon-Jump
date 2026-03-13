@@ -66,6 +66,7 @@ class Game:
 
     def draw(self):
         self.screen.fill((100, 180, 255))
+        self.draw_ground()
 
         if self.state == MENU:
             self.draw_menu()
@@ -90,7 +91,7 @@ class Game:
         title = font.render("Pidgeon Jump", True, (255, 255, 255))
         instruction = small_font.render("Press SPACE to start", True, (255, 255, 255))
 
-        self.screen.blit(TITLE, (WIDTH // 2 - title.get_width() // 2, 180))
+        self.screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 180))
         self.screen.blit(instruction, (WIDTH // 2 - instruction.get_width() // 2, 260))
 
     def draw_game(self):
