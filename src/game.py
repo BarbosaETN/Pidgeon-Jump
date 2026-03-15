@@ -1,7 +1,8 @@
 import pygame
-from settings import WIDTH, HEIGHT, FPS, GROUND_HEIGHT, OBSTACLE_FREQUENCY, TITLE
+from settings import WIDTH, HEIGHT, FPS, GROUND_HEIGHT, OBSTACLE_FREQUENCY, TITLE, BACKGROUND_PATH, FLAP_SOUND_PATH, HIT_SOUND_PATH, SCORE_SOUND_PATH, MUSIC_PATH, BG_SPEED, HIGHSCORE_FILE
 from src.player import Player
 from src.obstacle import Obstacle
+from src.ui import UI
 
 MENU = "menu"
 PLAYING: str = "playing"
@@ -13,11 +14,37 @@ class Game:
         self.clock = clock
         self.running = True
         self.state = MENU
+        self.ui = UI()
 
         self.player = Player(150, HEIGHT // 2)
         self.obstacles = []
         self.last_obstacle_time = 0
         self.score = 0
+        self.highscore = self.load_highscore()
+        self.hit_played = False
+
+        #  adicionando cena de fundo ao jogo
+        self.background = pygame.image.load(BACKGROUND_PATH).convert()
+        self.background = pygame.transform.scale(self.background, (WIDTH, HEIGHT - GROUND_HEIGHT))
+
+        self.bg_x = 0
+        self.bg_speed = BG_SPEED
+
+        #  sons de pulo, score e de dano
+        self.flap_sound = pygame.mixer.Sound(FLAP_SOUND_PATH)
+        self.score_sound = pygame.mixer.Sound(SCORE_SOUND_PATH)
+        self.hit_sound = pygame.mixer.Sound(HIT_SOUND_PATH)
+
+        #  ajuste de volume para os audios
+        self.flap_sound.set_volume(0.4)
+        self.score_sound.set_volume(0.5)
+        self.hit_sound.set_volume(0.6)
+
+
+        #  adiciona a música no jogo
+        pygame.mixer.music.load(MUSIC_PATH)
+        pygame.mixer.music.set_volume(0.3)
+        pygame.mixer.music.play(-1)
 
     def run(self):
         while self.running:
@@ -26,6 +53,7 @@ class Game:
             self.update()
             self.draw()
 
+    #  eventos para controle do personagem e do menu
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -38,6 +66,7 @@ class Game:
 
                 elif self.state == PLAYING and event.key == pygame.K_SPACE:
                     self.player.jump()
+                    self.flap_sound.play()
 
                 elif self.state == GAME_OVER and event.key == pygame.K_RETURN:
                     self.state = PLAYING
@@ -45,6 +74,11 @@ class Game:
 
     def update(self):
         if self.state == PLAYING:
+            self.bg_x -= self.bg_speed
+
+            if self.bg_x <= -WIDTH:
+                self.bg_x = 0
+
             self.player.update()
 
             current_time = pygame.time.get_ticks()
@@ -59,24 +93,30 @@ class Game:
                 if not obstacle.passed and obstacle.x + obstacle.width < self.player.x:
                     obstacle.passed = True
                     self.score += 1
+                    self.score_sound.play()
+
+                    if self.score > self.highscore:
+                        self.highscore = self.score
+                        self.save_highscore()
 
             self.obstacles = [obstacle for obstacle in self.obstacles if not obstacle.off_screen()]
 
             self.check_collisions()
 
     def draw(self):
-        self.screen.fill((100, 180, 255))
+        self.screen.blit(self.background, (self.bg_x, 0))
+        self.screen.blit(self.background, (self.bg_x + WIDTH, 0))
         self.draw_ground()
 
         if self.state == MENU:
-            self.draw_menu()
+            self.ui.draw_menu(self.screen, self.highscore)
 
         elif self.state == PLAYING:
             self.draw_game()
 
         elif self.state == GAME_OVER:
             self.draw_game()
-            self.draw_game_over()
+            self.ui.draw_game_over(self.screen, self.score, self.highscore)
 
         pygame.display.flip()
 
@@ -84,49 +124,35 @@ class Game:
         ground_rect = pygame.Rect(0, HEIGHT - GROUND_HEIGHT, WIDTH, GROUND_HEIGHT)
         pygame.draw.rect(self.screen, (80,180, 80), ground_rect)
 
-    def draw_menu(self):
-        font = pygame.font.SysFont(None, 52)
-        small_font = pygame.font.SysFont(None, 36)
-
-        title = font.render("Pidgeon Jump", True, (255, 255, 255))
-        instruction = small_font.render("Press SPACE to start", True, (255, 255, 255))
-
-        self.screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 180))
-        self.screen.blit(instruction, (WIDTH // 2 - instruction.get_width() // 2, 260))
-
     def draw_game(self):
         self.player.draw(self.screen)
 
         for obstacle in self.obstacles:
             obstacle.draw(self.screen)
 
-        font = pygame.font.SysFont(None, 42)
-        score_text = font.render(f"Score: {self.score}", True, (255, 255, 255))
-        self.screen.blit(score_text, (20, 20))
-
-    def draw_game_over(self):
-        font = pygame.font.SysFont(None, 52)
-        small_font = pygame.font.SysFont(None, 36)
-
-        game_over = font.render("GAME OVER", True, (255, 80, 80))
-        restart = small_font.render("Press ENTER to restart", True, (255, 255, 255))
-
-        self.screen.blit(game_over,(WIDTH // 2 - game_over.get_width() // 2, 220))
-        self.screen.blit(restart, (WIDTH // 2 - restart.get_width() // 2, 280))
+        self.ui.draw_hud(self.screen, self.score, self.highscore)
 
     def spawn_obstacle(self):
         obstacle = Obstacle(WIDTH + 50)
         self.obstacles.append(obstacle)
 
     def check_collisions(self):
+        collided = False
+
         for obstacle in self.obstacles:
             if self.player.rect.colliderect(obstacle.top_rect) or self.player.rect.colliderect(obstacle.bottom_rect):
-                self.state = GAME_OVER
+                collided = True
 
         if self.player.rect.top <= 0:
-            self.state = GAME_OVER
+            collided = True
 
         if self.player.rect.bottom >= HEIGHT - GROUND_HEIGHT:
+            collided = True
+
+        if collided:
+            if not self.hit_played:
+                self.hit_sound.play()
+                self.hit_played = True
             self.state = GAME_OVER
 
     def reset_game(self):
@@ -134,6 +160,15 @@ class Game:
         self.obstacles = []
         self.last_obstacle_time = pygame.time.get_ticks()
         self.score = 0
+        self.hit_played = False
 
+    def load_highscore(self):
+        try:
+            with open(HIGHSCORE_FILE, 'r') as file:
+                return int(file.read())
+        except (FileNotFoundError, ValueError):
+            return 0
 
-
+    def save_highscore(self):
+        with open(HIGHSCORE_FILE, 'w') as file:
+            file.write(str(self.highscore))

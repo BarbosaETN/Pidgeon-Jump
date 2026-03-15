@@ -1,6 +1,6 @@
 import pygame
 import random
-from settings import HEIGHT, GROUND_HEIGHT, OBSTACLE_GAP, OBSTACLE_SPEED
+from settings import HEIGHT, GROUND_HEIGHT, OBSTACLE_GAP, OBSTACLE_SPEED, BUILDING_PATH
 
 class Obstacle:
     def __init__(self, x, width=90):
@@ -18,7 +18,7 @@ class Obstacle:
         self.top_rect = pygame.Rect(self.x, 0, self.width, self.top_height)
         self.bottom_rect = pygame.Rect(self.x, self.bottom_y, self.width, self.bottom_height)
 
-        self.image = pygame.image.load("asset/images/building.png").convert_alpha()
+        self.image = pygame.image.load(BUILDING_PATH).convert_alpha()
         self.image = pygame.transform.scale(self.image, (self.width, 400))
         self.flipped_image = pygame.transform.flip(self.image, False, True)
 

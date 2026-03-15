@@ -1,5 +1,5 @@
 import pygame
-from settings import GRAVITY, JUMP_STRENGTH
+from settings import GRAVITY, JUMP_STRENGTH, PIGEON_1_PATH, PIGEON_2_PATH, PIGEON_3_PATH
 
 class Player:
     def __init__(self, x, y):
@@ -9,9 +9,9 @@ class Player:
         self.velocity_y = 0
 
         self.frames = [
-            pygame.image.load("asset/images/Pidgeon1.png").convert_alpha(),
-            pygame.image.load("asset/images/Pidgeon2.png").convert_alpha(),
-            pygame.image.load("asset/images/Pidgeon3.png").convert_alpha()
+            pygame.image.load(PIGEON_1_PATH).convert_alpha(),
+            pygame.image.load(PIGEON_2_PATH).convert_alpha(),
+            pygame.image.load(PIGEON_3_PATH).convert_alpha()
         ]
 
         self.frames = [pygame.transform.scale(frame, (50, 40)) for frame in self.frames]
