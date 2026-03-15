@@ -1,5 +1,5 @@
 import pygame
-from settings import WIDTH, WHITE, RED
+from settings import WIDTH, WHITE, RED, TITLE
 
 class UI:
     def __init__(self):
@@ -8,7 +8,7 @@ class UI:
         self.small_font = pygame.font.SysFont(None, 36)
 
     def draw_menu(self, screen, highscore):
-        title = self.title_font.render("Pidgeon Jump", True, WHITE)
+        title = self.title_font.render(TITLE, True, WHITE)
         instruction = self.small_font.render("Press SPACE to start", True, WHITE)
         highscore_text = self.small_font.render(f"Best Score: {highscore}", True, WHITE)
 
